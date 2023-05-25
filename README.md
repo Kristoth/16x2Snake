@@ -11,6 +11,7 @@ If loaded properly, LCD should look like this:
 
 
 >High:]* __ \[Last:
+
 > 00  ]     \[ 00    
 
 
