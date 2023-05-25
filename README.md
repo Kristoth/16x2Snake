@@ -10,8 +10,8 @@ Game board has the size of 10x8 squares, each of 2x2 pixels - 8 charcters
 If loaded properly, LCD should look like this:
 
 
-High:]* __ \[Last:
- 00  ]     \[ 00    
+>High:]* __ \[Last:
+> 00  ]     \[ 00    
 
 
 Click the button to start the game, pause, unpause or restart
