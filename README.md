@@ -8,6 +8,7 @@ Due to library limitations, only 8 custom characters may be defined at any given
 Game board has the size of 10x8 squares, each of 2x2 pixels - 8 charcters
 
 If loaded properly, LCD should look like this:
+
 '''
 "High:]* __ \[Last:
 " 00  ]     \[ 00    
