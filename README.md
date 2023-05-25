@@ -18,13 +18,13 @@ If loaded properly, LCD should look like this:
 Click the button to start the game, pause, unpause or restart
 
 Required elements:
-  Arduino Uno or a knock-off
-  A 16x2 LCD Alphanumeric Screen
-  Potentiometer to control the LCD's backlight
-  A Two axis joystick                                    - A0, A1
-  A Pullup Button (potentially included in the joystick) - pin 2
-  Buzzer or other sound-making device (optional)         - pin 8
-  A breadboard
+  Arduino Uno or a knock-off;
+  A 16x2 LCD Alphanumeric Screen;
+  Potentiometer to control the LCD's backlight;
+  A Two axis joystick                                    - A0, A1;
+  A Pullup Button (potentially included in the joystick) - pin 2;
+  Buzzer or other sound-making device (optional)         - pin 8;
+  A breadboard;
   
 
   
