@@ -10,7 +10,7 @@ Game board has the size of 10x8 squares, each of 2x2 pixels - 8 charcters
 If loaded properly, LCD should look like this:
 
 '''
-"High:]* __ \[Last:
+"High:]* __ \[Last: \n
 " 00  ]     \[ 00    
 '''
 
