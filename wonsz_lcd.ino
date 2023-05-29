@@ -9,9 +9,11 @@ LiquidCrystal lcd(3, 4, 5, 6, 7, 9); // RS, EN, D4, D5, D6, D7
 const int pinInput = 2; // Button (PULLUP) pin
 const int pinBuzzer = 8; // Buzzer pin
 
+const unsigned int difficulty = 4; // How often the Snek moves, per second (max is 40);
+
 // Uses a joystick connected to A0 and A1
 
-// Click the button start, pause, unpause or restart the game
+// Click the button start, pause, unpause or reset the game
 
 
 
@@ -48,7 +50,9 @@ unsigned char conv[8]= {0, 0, 0, 0, 0, 0, 0, 0};
 unsigned char table[8][5];
 
 int posFruit[2];
+bool showFruit = 0;
 
+int cycles = 1;
 
 long time1 = 0;
 
@@ -63,11 +67,14 @@ void setup() {
   pinMode(pinBuzzer, OUTPUT);
 
 
+  if (difficulty > 40) cycles = 1;
+  else cycles = 40 / difficulty; 
+  
 
   //sendTable();
 
 
-  restart();
+  resetGame();
   moveCounter=-1;
   
   
@@ -81,7 +88,20 @@ void loop()
   
   if (started and !lost and !paused) moveCounter++;
 
-  if (started and !lost and (moveCounter==30)){
+  //if ((moveCounter >= cycles) and stateDebug) stateState();
+
+  if (started and !lost and (moveCounter >= cycles)) tick();
+  
+
+  dealWithThePlayer();
+  
+  delay(25);
+
+ 
+
+}
+
+void tick(){
     moveCounter=0;
     bool impact=false;
 
@@ -91,7 +111,7 @@ void loop()
     int i = 1;
 
     while (i<snake_len-1){
-      if ((posHead[0] + dir[0]== snakeData[i][0] and posHead[1]==snakeData[i][1]) or (posHead[0] == snakeData[i][0] and posHead[1] + dir[1] == snakeData[i][1])) impact = impact + 1;
+      if ((posHead[0] + dir[0]== snakeData[i][0] and posHead[1] == snakeData[i][1]) or (posHead[0] == snakeData[i][0] and posHead[1] + dir[1] == snakeData[i][1])) impact = impact + 1;
       i++;
     };
   if (debug) Serial.println("Bodycheck: "+String(impact));
@@ -105,6 +125,7 @@ void loop()
     if ((posHead[0] == posFruit[0]) and (posHead[1] == posFruit[1])){
         setFruit();
         snake_len++;
+        if (snake_len == 80 and !won) victory();
         digitalWrite(pinBuzzer, HIGH);
         delay(50);
         digitalWrite(pinBuzzer,LOW);
@@ -112,7 +133,8 @@ void loop()
         digitalWrite(pinBuzzer,HIGH);
         delay(50);
         digitalWrite(pinBuzzer,LOW);
-        moveCounter=15;
+        
+        moveCounter = 7;
         
       };
 
@@ -135,9 +157,7 @@ void loop()
       }
 
 
-    //if (snakeData[1][2]==snakeData[2][2]) drawSprite(snakeData[1][0],snakeData[1][1],snakeData[1][2]+4);
-    //else goodLuckFindingThat();
-    
+   
     snakeData[0][0] = posHead[0];
     snakeData[0][1] = posHead[1];
 
@@ -151,9 +171,15 @@ void loop()
 
     
   };
-  };
+};
 
-  if (!paused and (digitalRead(pinInput)==LOW) and !pToggle and !lost){
+void dealWithThePlayer(){
+  // #############################################################################
+  // Analiza wejscia uzytkownika / User input analisys
+
+
+  
+  if (!paused and (digitalRead(pinInput) == LOW) and !pToggle and started and !lost){
     pToggle=1;
     paused=1;
     if (miniDebug  && !debug){
@@ -163,7 +189,7 @@ void loop()
     }
   }
 
-  if (paused and (digitalRead(pinInput)==LOW) and !pToggle){
+  if (paused and (digitalRead(pinInput) == LOW) and !pToggle){
     pToggle=1;
     paused=0;
   }
@@ -171,36 +197,37 @@ void loop()
   if (digitalRead(pinInput)==HIGH && pToggle) pToggle=0;
   
   
-
-
-
-
-  if (snake_len==79 and !won) victory();
+  
   bool dirChange=0;
-  if ((lost) and (digitalRead(pinInput)==LOW)) restart();
+  if ((lost) and (digitalRead(pinInput)==LOW)){
+    pToggle = 1;
+    resetGame();
+  }
 
-  // #############################################################################
-  // Analiza wejscia uzytkownika / User input analisys
+  
   
   anal0=analogRead(A0);
   anal1=analogRead(A1);
 
-  if ((anal0<300) and (anal1>=300) and (anal1<=700) and (dir[2]!=3) and (posHead[0]!=0)){ dir[0]=-1; dir[1]=0 ; dir[2]=3 ; dirChange=1;}
-  if ((anal0>700) and (anal1>=300) and (anal1<=700) and (dir[2]!=1) and (posHead[0]!=13)){dir[0]=1 ; dir[1]=0 ; dir[2]=1 ; dirChange=1;}
   
-  if ((anal1<300) and (anal0>=300) and (anal0<=700) and (dir[2]!=0) and (posHead[1]!=0)){ dir[0]=0 ; dir[1]=-1; dir[2]=0 ; dirChange=1;}
-  if ((anal1>700) and (anal0>=300) and (anal0<=700) and (dir[2]!=2) and (posHead[1]!=6)){ dir[0]=0 ; dir[1]=1 ; dir[2]=2 ; dirChange=1;}
+
+  if ( anal0 < 300 and anal1 >= 300 and anal1 <= 700 and dir[2] != 3 and posHead[0] !=  0 and posHead[0] - 1 != snakeData[1][0] ){dir[0] = -1; dir[1] =  0; dir[2] = 3; dirChange = 1;}
+  if ( anal0 > 700 and anal1 >= 300 and anal1 <= 700 and dir[2] != 1 and posHead[0] != 13 and posHead[0] + 1 != snakeData[1][0] ){dir[0] =  1; dir[1] =  0; dir[2] = 1; dirChange = 1;}
+  
+  if ( anal1 < 300 and anal0 >= 300 and anal0 <= 700 and dir[2] != 0 and posHead[1] !=  0 and posHead[1] - 1 != snakeData[1][1] ){dir[0] =  0; dir[1] = -1; dir[2] = 0; dirChange = 1;}
+  if ( anal1 > 700 and anal0 >= 300 and anal0 <= 700 and dir[2] != 2 and posHead[1] !=  6 and posHead[1] + 1 != snakeData[1][1] ){dir[0] =  0; dir[1] =  1; dir[2] = 2; dirChange = 1;}
   
 
 
-  if (miniDebug and dirChange) Serial.println("Rotation is: "+String(dir[2]));
+  if ((miniDebug or debug) and dirChange) Serial.println("Rotation is: "+String(dir[2]));
   
 
   
   if ((!started) and (dirChange)){
     if (debug) Serial.println("Game, start!");
-    moveCounter=0;
-    started=1;
+    moveCounter = 0;
+    started = 1;
+    showFruit = 1;
     
     randomSeed(millis());
     setFruit();
@@ -211,11 +238,16 @@ void loop()
 
   // Koniec analizy wejscia uzytkownika / User Input analisys end here
   // ######################################################
-  
-  delay(10);
+}
 
- 
+void timer(){ // Debugowy pomiar czasu
+  if (debug_time){
+    long time2 = millis();
 
+    Serial.print("Czas trwania jednego cyklu: ");
+    Serial.print(time2 - time1);
+    Serial.println("ms");
+  }
 }
 
 void project(){ // rzucaj swoje wyrzuty sumienia na inne osoby
@@ -234,12 +266,11 @@ void project(){ // rzucaj swoje wyrzuty sumienia na inne osoby
     else snake_matrix_flat[10 + x][y - 4] = 1;
 
   };
-    if (posFruit[1] < 4 ) snake_matrix_flat[posFruit[0]][posFruit[1]] = 1;
-    else snake_matrix_flat[10 + posFruit[0]][posFruit[1] - 4] = 1;
+  
+    if (posFruit[1] < 4 and showFruit) snake_matrix_flat[posFruit[0]][posFruit[1]] = 1;
+    else if (showFruit) snake_matrix_flat[10 + posFruit[0]][posFruit[1] - 4] = 1;
 
   
-
-
   for (int i = 0; i < 20; i++){
     table[(i * 2)/ 5][(i * 2) % 5] = 0;
     
@@ -269,18 +300,9 @@ void render(){ // Renderuje tablice na LCD
     lcd.createChar(byte(i), conv);
   }
 
-  timer();
+  delay(2);
+
   
-}
-
-void timer(){ // Debugowy pomiar czasu
-  if (debug_time){
-    long time2 = millis();
-
-    Serial.print("Czas trwania jednego cyklu: ");
-    Serial.print(time2-time1);
-    Serial.println("ms");
-  }
 }
 
 
@@ -298,8 +320,14 @@ void convert(unsigned char from[5]){ // obrot danych z tabeli na znaki
     conv[i] += ((from[4] & num) >> i) * 1 ; 
   };
 
-
 }
+
+
+
+
+
+
+
 
 void sendTable(){ // debug - tablica gry
   if (debug){  
@@ -333,32 +361,55 @@ void sendChar(unsigned char what[5]){
 
 };
 
-void restart(){
-  Serial.println("(Re)-Start!");
+void resetGame(){
+  Serial.println("(Re)-Set!");
 
-  lost=false;
-  started=false;
-  won=false;
-  moveCounter=0;
-  snake_len=4;
+  lost = false;
+  started = false;
+  won = false;
+  moveCounter = 0;
+  snake_len = 4;
 
-  posHead[0]=3;
-  posHead[1]=3;
+  posHead[0] = 3;
+  posHead[1] = 3;
   
-  snakeData[0][0]=3;
-  snakeData[0][1]=3;
+  snakeData[0][0] = 3;
+  snakeData[0][1] = 3;
 
-  snakeData[1][0]=4;
-  snakeData[1][1]=3;;
+  snakeData[1][0] = 4;
+  snakeData[1][1] = 3;;
   
-  snakeData[2][0]=5;
-  snakeData[2][1]=3;
+  snakeData[2][0] = 5;
+  snakeData[2][1] = 3;
   
-  snakeData[3][0]=6;
-  snakeData[3][1]=3;
+  snakeData[3][0] = 6;
+  snakeData[3][1] = 3;
   
-  snakeData[4][0]=8;
-  snakeData[4][1]=3;
+  snakeData[4][0] = 8;
+  snakeData[4][1] = 3;
+
+  dir[2] = 1;
+  
+
+  showFruit = 0;
+  
+  lcd.setCursor(5, 0);
+  lcd.write(']');
+  lcd.write(byte(0));
+  lcd.write(byte(1));
+  lcd.write(byte(2));
+  lcd.write(byte(3));
+  lcd.write('[');
+  
+
+  lcd.setCursor(5, 1);
+  lcd.write(']');
+  lcd.setCursor(6, 1);
+  lcd.write(byte(4));
+  lcd.write(byte(5));
+  lcd.write(byte(6));
+  lcd.write(byte(7));
+  lcd.write('[');
 
   lcd.setCursor(0, 0);
   lcd.print("High:");
@@ -369,33 +420,14 @@ void restart(){
 
   scores();
 
-  lcd.setCursor(5, 0);
-  lcd.write(']');
-  lcd.write(byte(0));
-  lcd.write(byte(1));
-  lcd.write(byte(2));
-  lcd.write(byte(3));
-  lcd.write('[');
   
-
-  
-  lcd.setCursor(5, 1);
-  lcd.write(']');
-  lcd.setCursor(6, 1);
-  lcd.write(byte(4));
-  lcd.write(byte(5));
-  lcd.write(byte(6));
-  lcd.write(byte(7));
-  lcd.write('[');
   
   debug_info();
 
   project();
   render();
 
-  //delay(200);
-
- 
+  
 };
 
 void defeat(){
@@ -403,11 +435,9 @@ void defeat(){
   lost=true;
   Serial.println("You Lose");    
   Serial.println("Score: "+String(snake_len - 4));
-  if (miniDebug && !debug){
-    debug = 1;
-    debug_info();
-    debug = 0;
-  }
+  
+  debug_info();
+  
   
   tone(pinBuzzer,247,100);
   delay(150);
@@ -422,11 +452,8 @@ void defeat(){
   last = snake_len - 4;
   high = max(high, last);
   
-
   scores();
-  /*lcd.setCursor(7, 0);
-  if (snake_len - 4 < 10) lcd.write('0');
-  lcd.print(String(snake_len-4));*/
+
 }
 
 void victory(){
@@ -446,18 +473,26 @@ void victory(){
   delay(250);
   tone(pinBuzzer,587,200);
 
-  
-  /*
-   
-   lcd.setCursor(7, 0);
-  //if (snake_len - 5 < 10) lcd.write('0');
-  lcd.print("99");*/
+  last = 99;
+  high = 99;
 
   scores();
 }
 
+
+void scores(){
+  lcd.setCursor(1, 1);
+  if (high <= 9) lcd.write('0');
+  lcd.print(high);
+
+  lcd.setCursor(12, 1);
+  if (last <= 9) lcd.write('0');
+  lcd.print(last);
+
+}
+
 void debug_info(){
-  if (debug){
+  if (debug or miniDebug){
     Serial.println("Snake lenght is: "+String(snake_len));
     int j=0;
     while (j<snake_len){
@@ -470,18 +505,7 @@ void debug_info(){
 
 }
 
-void scores(){
-  lcd.setCursor(1, 1);
-  if (high <= 9) lcd.write('0');
-  lcd.print(high);
 
-  lcd.setCursor(12, 1);
-  if (last <= 9) lcd.write('0');
-  lcd.print(last);
-
-
-  
-}
 
 void setFruit(){
   if (fruitDebug) Serial.print("New fruit generated at: ");
@@ -491,7 +515,6 @@ void setFruit(){
     conOut=1;
     posFruit[0]=random(0,6)+random(0,5);
     posFruit[1]=random(0,8);
-    //posFruit[2]=random(20,24);
 
     if (posFruit[0] == posHead[0] and posFruit[1] == posHead[1]) conOut=0;
   
@@ -505,5 +528,5 @@ void setFruit(){
   if (counter>=999){posFruit[0]=0,posFruit[1]=0;}
   if (fruitDebug) Serial.print(String(posFruit[0])+", "+String(posFruit[1]));
   if (fruitDebug) Serial.println(", "+String(counter)+"'th try");
-  //drawSprite(posFruit[0],posFruit[1],posFruit[2]);
+
 }
